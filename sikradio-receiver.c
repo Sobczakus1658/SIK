@@ -34,19 +34,22 @@
 
 
 #define BUFFER_SIZE 20
-#define DATA_PORT 20000 //TODO
+#define DATA_PORT 20009 //TODO
 #define PSIZE 512   
 #define BSIZE 65536
 #define NAZWA "Nienazwany Nadajnik"
 
 char *host;
+bool started;
+bool finished = 0;
+uint64_t usefull_bytes; 
 //sem_t *mutex;
 char *buffer;
 bool *received_package;
 bool set_byte0;
 uint64_t  reading_data ;
 uint64_t  writing_data ;
-uint64_t last_received_package;
+uint64_t max_received_package;
 pthread_mutex_t  sem;
 pthread_mutex_t  change_value;
 pthread_cond_t  cond;
@@ -134,9 +137,22 @@ void send_message(int socket_fd, const struct sockaddr_in *client_address, const
 }
 
 void setValue(int argc, char *argv[]){
-    host = argv[2];
-    name = argv[4];
-    //uint16_t port = read_port(argv[2]);
+   // host = argv[2];
+   // name = argv[4];
+    for( int i = 1 ; i < argc; i++){
+        if(!strcmp(argv[i],"-a")){
+            host = argv[i +1];
+        }
+        else if(!strcmp(argv[i],"-P")){
+            port = read_port(argv[i +1 ]);
+        }
+        else if(!strcmp(argv[i],"-p")){;
+            psize = strtoull(argv[i + 1], NULL, 10);
+        }
+        else if(!strcmp(argv[i],"-b")){
+            bsize = strtoull(argv[i +1], NULL, 10);
+         }
+     }
 }
 uint64_t convert_to_uint_64(char* buffer, int beginning){
     uint64_t answer;
@@ -156,14 +172,22 @@ uint64_t setsession(char * buffer){
 }
 void reset_data(){
     pthread_mutex_lock(&change_value);
-    set_byte0 = false;
-    for( int i = 0 ; i<bsize; i ++){
-        buffer[i] = 0;
-    }
+    //set_byte0 = false;
+    //for( int i = 0 ; i<usefull_bytes; i ++){
+    //    buffer[i] = 0;
+    //}
+    memset(buffer, 0, bsize);
     writing_data = 0;
     reading_data = 0;
-    last_received_package = 0;
+    //max_received_package = 0;
     pthread_mutex_unlock(&change_value);
+    max_received_package = 0;
+    set_byte0 = false;
+    //for ( int i =0 ; i < bsize/psize; i++){
+    //    received_package[i] = 0;
+    //}
+    memset(received_package, 0, bsize/psize);
+    started = 0;
 
 }
 int interested(uint64_t *actual_session, char*  buffer, uint64_t *byte0){
@@ -196,7 +220,7 @@ int interested(uint64_t *actual_session, char*  buffer, uint64_t *byte0){
 void set_zero_buffer(uint64_t beginning, uint64_t end){
     pthread_mutex_lock(&change_value);
     for (uint64_t i = beginning * psize; i < end * psize; i ++){
-        buffer[i %bsize] = 0;
+        buffer[i %usefull_bytes] = 0;
     }
     pthread_mutex_unlock(&change_value);
 //od beginning do end jezeli end > beginning
@@ -206,15 +230,17 @@ void missingpackage(uint64_t actual_byte){
     if(actual_byte > 30) {
         return 0;
     }
-    fprintf(stderr, "%ld %ld \n", last_received_package, actual_byte);
+    //fprintf(stderr, "%ld %ld \n", max_received_package, actual_byte);
     // na actual_byte mam ten co przyszedł
     // na last_received mam to co był ostatnio
-    for( uint64_t i = last_received_package +1; i < actual_byte; i ++){
+    for( uint64_t i = max_received_package +1; i < actual_byte; i ++){
+       // fprintf(stderr, "te zeruje %ld", i);
         received_package[i %(bsize/psize)] = 0;
-        set_zero_buffer(last_received_package +1, actual_byte);
+        set_zero_buffer(max_received_package +1, actual_byte);
         //fprintf(stderr, "siema");
         //zeruj
     }
+    //fprintf(stderr, "\n");
     int start = 0; 
     if( actual_byte > max_package){
         start = actual_byte + 1 - max_package;
@@ -241,7 +267,7 @@ uint64_t setBuffer( char * temporary_buffer, char* buffer, uint64_t index, uint6
     missingpackage((first_num_byte-byte0)/ psize);
     memcpy(buffer + index, temporary_buffer + 16, psize);
     pthread_mutex_lock(&change_value);
-    (writing_data) = ((writing_data) + psize ) %bsize;
+    (writing_data) = ((writing_data) + psize ) %usefull_bytes;
     pthread_mutex_unlock(&change_value);
    // *writing_data = *writing_data + psize;
     //pthread_cond_signal(cond);
@@ -256,7 +282,10 @@ uint64_t setBuffer( char * temporary_buffer, char* buffer, uint64_t index, uint6
     //pthread_mutex_unlock(sem);
     //return *session_id;
     //printf("%ld ", first_num_byte);
-    last_received_package = (first_num_byte - byte0)/psize;
+    if((first_num_byte - byte0)/psize > max_received_package){
+        max_received_package = (first_num_byte - byte0)/psize;
+    }
+    //max_received_package =  max(max_received_package, (first_num_byte - byte0)/psize);
     //received_package[last_received_package % (bsize/psize)] = 1;
     return first_num_byte;
    // return *session_id;
@@ -274,14 +303,16 @@ void* writing(void* data)
     //printf("elooo");
     //}
     while(true){
+        //fprintf(stderr, "przed");
         pthread_cond_wait(&cond, &sem);
+        //fprintf(stderr, "po");
         while(writing_data !=reading_data){
     //while(true){
            // printf("cycki");
             //printf("%c", buffer[(*reading_data)]);
             fwrite(buffer + (reading_data), sizeof(char), psize, stdout);
             pthread_mutex_lock(&change_value);
-            (reading_data) =( ( reading_data) + psize )% bsize;
+            (reading_data) =( ( reading_data) + psize )% usefull_bytes;
             pthread_mutex_unlock(&change_value);
             //if(*reading_data >= bsize){
             //    (*reading_data) = (*reading_data) - bsize;
@@ -296,15 +327,20 @@ bool check(struct sockaddr_in send_address, struct sockaddr_in excpeted_address)
 }
 
 int main(int argc, char *argv[]) {
-  //  *reading_data = 0;
-  //  *writing_data = 0;
+    reading_data = 0;
+    writing_data = 0;
     //printf("%d", bsize );
     //printf("chuj");
    // printf("%" PRIu16 "\n",bsize);
+   // fprintf(stderr, "przed");
     setValue(argc, argv);
-    last_received_package = 0;
+    //fprintf(stderr, "przeszedłem");
+    //usefull_bytes = bsize - (bsize%psize); 
+    usefull_bytes = (bsize/psize ) * psize; 
+   // fprintf(stderr, "%lu", usefull_bytes);
+    max_received_package = 0;
     struct sockaddr_in actual_connect = get_send_address();
-    buffer = malloc (bsize);
+    buffer = malloc (usefull_bytes);
     max_package = bsize/psize;
     received_package = malloc ( max_package);
     pthread_cond_init(&cond, NULL);
@@ -314,26 +350,28 @@ int main(int argc, char *argv[]) {
     char temporary_buffer[psize + 16];
     uint64_t actually_session = 0;
     uint64_t BYTE0 = 0;
+    //uint64_t usefull_bytes = (bsize/psize ) * psize; 
     uint64_t first_byte;
     set_byte0 = false;
     uint64_t counter = 0;
-    bool started = 0;
+    started = 0;
     //printf("%d", sizeof(t));
-    memset(buffer, 0, bsize);
+    memset(buffer, 0, usefull_bytes);
     //return 0;
     memset(temporary_buffer, 0,psize + 16);
     //return 0;
-    pthread_attr_t attr;
-    pthread_attr_init(&attr);
+   // pthread_attr_t attr;
+   // pthread_attr_init(&attr);
     pthread_t writing_data;
-    pthread_create(&writing_data, &attr, writing, NULL);
+    pthread_create(&writing_data, NULL, writing, NULL);
     struct sockaddr_in send_address = get_send_address(host, port);
 
     int socket_fd = bind_socket(port);
 
     struct sockaddr_in client_address;
     size_t audio_length;
-    //int i = 0;
+   // int i = 0;
+   //fprintf(stderr, "%ld ", psize);
     do {
         //printf("siema");
         audio_length = read_audio(socket_fd, &client_address, temporary_buffer, psize + 16);
@@ -348,17 +386,18 @@ int main(int argc, char *argv[]) {
         //printf("%d", decision);
         if(decision == 1){
             if(!set_byte0){
-            last_received_package = BYTE0;
+            max_received_package = BYTE0;
             set_byte0 = 1;
             }
             first_byte = setBuffer(temporary_buffer, buffer, counter, BYTE0);
            // fprintf(stderr, "%ld ", first_byte);
-            counter = (counter + psize ) % bsize;
+            counter = (counter + psize ) % usefull_bytes;
             if(started){
                 pthread_cond_signal(&cond);
             }
              if(BYTE0 + bsize*3/4 < first_byte + psize &&
                 BYTE0 + bsize*3/4 >= first_byte){
+                  //  sleep(2);
                 pthread_cond_signal(&cond);
                 started = 1;
              }
@@ -367,11 +406,19 @@ int main(int argc, char *argv[]) {
     } while (true);
     
     //printf("finished exchange\n");
-
+    pthread_cond_signal(&cond);
+   //pthread_join(writing_data, NULL);
+   // finished = 1;
     CHECK_ERRNO(close(socket_fd));
-
+    free(buffer);
+    free(received_package);
+    pthread_cond_init(&cond, NULL);
+    pthread_mutex_destroy(&sem);
+    pthread_mutex_destroy(&change_value);
+    pthread_cond_destroy(&cond);
+    // fprintf(stderr, "%s", name);
+    //
+    pthread_join(writing_data, NULL);
     return 0;
-    // naprawić wypisywanie missin errory.
-    // valgrinda
-    // Jeśli rozmiar odczytanych danych nie jest podzielny przez PSIZE,
+    // sprawddzić name
     }

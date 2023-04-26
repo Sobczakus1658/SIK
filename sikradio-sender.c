@@ -11,7 +11,7 @@
 #include "err.h"
 
 #define BUFFER_SIZE 20
-#define DATA_PORT 20000 //TODO
+#define DATA_PORT 20009 //TODO
 #define PSIZE 512   
 #define BSIZE 65536
 #define NAZWA "Nienazwany Nadajnik"
@@ -20,7 +20,7 @@ char *host;
 uint16_t port = DATA_PORT;
 uint16_t psize = PSIZE;
 uint16_t bsize = (uint16_t) BSIZE;
-char* name;
+char* name = NAZWA;
 
 char shared_buffer[BUFFER_SIZE];
 
@@ -44,8 +44,27 @@ uint16_t read_port(char *string) {
 }
 
 void setValue(int argc, char *argv[]){
-    host = argv[2];
-    name = argv[4];
+    for( int i = 1 ; i < argc; i++){
+        if(!strcmp(argv[i],"-a")){
+            host = argv[i +1];
+        }
+        else if(!strcmp(argv[i],"-P")){
+            port = read_port(argv[i +1 ]);
+        }
+        else if(!strcmp(argv[i],"-p")){
+            psize = strtoull(argv[i + 1], NULL, 10);
+        }
+        else if(!strcmp(argv[i],"-n")){
+            name = argv[i+1];
+            //bsize = strtoull(argv[i +1], NULL, 10);
+         }
+     }
+    //host = argv[2];
+    //name = argv[4];
+    //int i;
+    //if(argv[i] == '-n'){
+    //    i++;
+   // }
 }
 
 struct sockaddr_in get_send_address(char *host, uint16_t port) {
@@ -109,6 +128,7 @@ int main(int argc, char *argv[]) {
     time_t start = time(NULL);
    // printf(" kurwy i koks %d", start);
     setValue(argc,argv);
+    fprintf(stderr, "%s", name);
 
     struct sockaddr_in send_address = get_send_address(host, port);
 
@@ -127,16 +147,17 @@ int main(int argc, char *argv[]) {
     
     //*first_byte_num = 0;
     int i = 0;
+    //fprintf(stderr, "%ld ", psize);
     while( fread(audio_package + 2 * sizeof(uint64_t), sizeof(char), psize, stdin) ==psize ){
     //while(correct_input(audio_package, counter)){
-        if(i >2 ){
-        if(i %2 ==0){
-            first_byte_num = (i+1)*psize;
-        }
-        else{
-            first_byte_num = (i-1)*psize;
-        }
-        }
+       // if(i >2 ){
+       // if(i %2 ==0){
+       //     first_byte_num = (i+1)*psize;
+       // }
+       // else{
+       //     first_byte_num = (i-1)*psize;
+       // }
+        //}
         //fprintf(stderr, "%ld \n", first_byte_num);
         // i++;
         // if( i %2 == 0) {
@@ -146,12 +167,16 @@ int main(int argc, char *argv[]) {
         *converted_byte = htobe64(first_byte_num);
         send_audio(socket_fd, &send_address, audio_package);
       //  fwrite(audio_package + 2*sizeof(uint64_t), sizeof(char), psize, stdout);
-        //wypisz(audio_package);
+        //wypisz(audio_packge);
         //counter++;
         //*first_byte_num = *first_byte_num + 1;
         first_byte_num += psize;
-        i++;
+        //i++;
+        //if(i > 1000){
+        //    break;
+        //}
     }
+    // fprintf(stderr, "%s", name);
 
     CHECK_ERRNO(close(socket_fd));
 
