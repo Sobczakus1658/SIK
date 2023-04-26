@@ -1,0 +1,8 @@
+/home/hp/sik/CMakeFiles/install/strip.dir
+/home/hp/sik/CMakeFiles/install/local.dir
+/home/hp/sik/CMakeFiles/install.dir
+/home/hp/sik/CMakeFiles/list_install_components.dir
+/home/hp/sik/CMakeFiles/rebuild_cache.dir
+/home/hp/sik/CMakeFiles/edit_cache.dir
+/home/hp/sik/CMakeFiles/sikradio-receiver.dir
+/home/hp/sik/CMakeFiles/sikradio-sender.dir

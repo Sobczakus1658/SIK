@@ -1,0 +1,44 @@
+#IncludeRegexLine: ^[ 	]*[#%][ 	]*(include|import)[ 	]*[<"]([^">]+)([">])
+
+#IncludeRegexScan: ^.*$
+
+#IncludeRegexComplain: ^$
+
+#IncludeRegexTransform: 
+
+/home/hp/sik/err.h
+stdio.h
+-
+stdlib.h
+-
+stdarg.h
+-
+errno.h
+-
+stdbool.h
+-
+
+/home/hp/sik/sikradio-sender.c
+sys/types.h
+-
+sys/socket.h
+-
+netdb.h
+-
+stdio.h
+-
+string.h
+-
+unistd.h
+-
+stdlib.h
+-
+stdint.h
+-
+arpa/inet.h
+-
+time.h
+-
+err.h
+/home/hp/sik/err.h
+

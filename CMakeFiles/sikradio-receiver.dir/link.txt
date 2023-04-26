@@ -1,0 +1,1 @@
+/usr/bin/cc -g -Wall -Wextra -rdynamic CMakeFiles/sikradio-receiver.dir/sikradio-receiver.c.o -o sikradio-receiver  -lpthread 
