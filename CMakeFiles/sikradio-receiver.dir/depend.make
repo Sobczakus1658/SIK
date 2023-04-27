@@ -3,4 +3,5 @@
 
 CMakeFiles/sikradio-receiver.dir/sikradio-receiver.c.o: err.h
 CMakeFiles/sikradio-receiver.dir/sikradio-receiver.c.o: sikradio-receiver.c
+CMakeFiles/sikradio-receiver.dir/sikradio-receiver.c.o: utils.h
 

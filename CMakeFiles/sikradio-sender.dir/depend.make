@@ -3,4 +3,5 @@
 
 CMakeFiles/sikradio-sender.dir/sikradio-sender.c.o: err.h
 CMakeFiles/sikradio-sender.dir/sikradio-sender.c.o: sikradio-sender.c
+CMakeFiles/sikradio-sender.dir/sikradio-sender.c.o: utils.h
 

@@ -26,15 +26,11 @@
 #include <stdint.h>
 #include <arpa/inet.h>
 #include <time.h>
-#include "err.h"
-
-
-
-#include "err.h"
-
+// #include "err.h"
+#include "utils.h"
 
 #define BUFFER_SIZE 20
-#define DATA_PORT 20009 //TODO
+#define DATA_PORT 20009 
 #define PSIZE 512   
 #define BSIZE 65536
 #define NAZWA "Nienazwany Nadajnik"
@@ -43,7 +39,6 @@ char *host;
 bool started;
 bool finished = 0;
 uint64_t usefull_bytes; 
-//sem_t *mutex;
 char *buffer;
 bool *received_package;
 bool set_byte0;
@@ -60,38 +55,38 @@ uint64_t max_package;
 char* name;
 
 
-uint16_t read_port(char *string) {
-    errno = 0;
-    unsigned long port = strtoul(string, NULL, 10);
-    PRINT_ERRNO();
-    if (port > UINT16_MAX) {
-        fatal("%ul is not a valid port number", port);
-    }
+// uint16_t read_port(char *string) {
+//     errno = 0;
+//     unsigned long port = strtoul(string, NULL, 10);
+//     PRINT_ERRNO();
+//     if (port > UINT16_MAX) {
+//         fatal("%ul is not a valid port number", port);
+//     }
 
-    return (uint16_t) port;
-}
+//     return (uint16_t) port;
+// }
 
 
-struct sockaddr_in get_send_address() {
-    struct addrinfo hints;
-    memset(&hints, 0, sizeof(struct addrinfo));
-    hints.ai_family = AF_INET; // IPv4
-    hints.ai_socktype = SOCK_DGRAM;
-    hints.ai_protocol = IPPROTO_UDP;
+// struct sockaddr_in get_send_address() {
+//     struct addrinfo hints;
+//     memset(&hints, 0, sizeof(struct addrinfo));
+//     hints.ai_family = AF_INET; 
+//     hints.ai_socktype = SOCK_DGRAM;
+//     hints.ai_protocol = IPPROTO_UDP;
 
-    struct addrinfo *address_result;
-    CHECK(getaddrinfo(host, NULL, &hints, &address_result));
+//     struct addrinfo *address_result;
+//     CHECK(getaddrinfo(host, NULL, &hints, &address_result));
 
-    struct sockaddr_in send_address;
-    send_address.sin_family = AF_INET; // IPv4
-    send_address.sin_addr.s_addr =
-            ((struct sockaddr_in *) (address_result->ai_addr))->sin_addr.s_addr; // IP address
-    send_address.sin_port = htons(port); // port from the command line
+//     struct sockaddr_in send_address;
+//     send_address.sin_family = AF_INET; 
+//     send_address.sin_addr.s_addr =
+//             ((struct sockaddr_in *) (address_result->ai_addr))->sin_addr.s_addr; 
+//     send_address.sin_port = htons(port); 
 
-    freeaddrinfo(address_result);
+//     freeaddrinfo(address_result);
 
-    return send_address;
-}
+//     return send_address;
+// }
 
 int bind_socket(uint16_t port) {
     int socket_fd = socket(AF_INET, SOCK_DGRAM, 0); // creating IPv4 UDP socket
@@ -137,8 +132,6 @@ void send_message(int socket_fd, const struct sockaddr_in *client_address, const
 }
 
 void setValue(int argc, char *argv[]){
-   // host = argv[2];
-   // name = argv[4];
     for( int i = 1 ; i < argc; i++){
         if(!strcmp(argv[i],"-a")){
             host = argv[i +1];
@@ -227,9 +220,9 @@ void set_zero_buffer(uint64_t beginning, uint64_t end){
 }
 void missingpackage(uint64_t actual_byte){
     received_package[actual_byte %(bsize/psize)] = 1;
-    if(actual_byte > 30) {
-        return 0;
-    }
+    //if(actual_byte > 30) {
+    //    return 0;
+    //}
     //fprintf(stderr, "%ld %ld \n", max_received_package, actual_byte);
     // na actual_byte mam ten co przyszedł
     // na last_received mam to co był ostatnio
@@ -339,7 +332,7 @@ int main(int argc, char *argv[]) {
     usefull_bytes = (bsize/psize ) * psize; 
    // fprintf(stderr, "%lu", usefull_bytes);
     max_received_package = 0;
-    struct sockaddr_in actual_connect = get_send_address();
+    struct sockaddr_in actual_connect = get_send_address(host,port);
     buffer = malloc (usefull_bytes);
     max_package = bsize/psize;
     received_package = malloc ( max_package);
