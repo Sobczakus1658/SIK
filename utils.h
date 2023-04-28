@@ -10,11 +10,8 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netdb.h>
-#include <stdio.h>
 #include <string.h>
 #include <unistd.h>
-#include <stdlib.h>
-#include <stdint.h>
 #include <arpa/inet.h>
 #include <time.h>
 
@@ -28,15 +25,11 @@ uint16_t read_port(char *string) {
     if (port > UINT16_MAX) {
         fatal("%ul is not a valid port number", port);
     }
-
     return (uint16_t) port;
 }
 
 
 struct sockaddr_in get_send_address(char *host, uint16_t port) {
-    //w argumencie host i port
-//     char *host;
-// uint16_t port = DATA_PORT;
     struct addrinfo hints;
     memset(&hints, 0, sizeof(struct addrinfo));
     hints.ai_family = AF_INET; 

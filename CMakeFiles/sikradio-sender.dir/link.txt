@@ -1,1 +1,1 @@
-/usr/bin/cc -g -Wall -Wextra -rdynamic CMakeFiles/sikradio-sender.dir/sikradio-sender.c.o -o sikradio-sender 
+/usr/bin/cc -g -Wall -O2 -Wextra -rdynamic CMakeFiles/sikradio-sender.dir/sikradio-sender.c.o -o sikradio-sender 

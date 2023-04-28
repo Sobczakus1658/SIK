@@ -9,7 +9,6 @@
 #include <arpa/inet.h>
 #include <time.h>
 
-// #include "err.h"
 #include "utils.h"
 
 #define BUFFER_SIZE 20
@@ -24,19 +23,8 @@ uint16_t psize = PSIZE;
 uint16_t bsize = (uint16_t) BSIZE;
 char* name = NAZWA;
 
-// uint16_t read_port(char *string) {
-//     errno = 0;
-//     unsigned long port = strtoul(string, NULL, 10);
-//     PRINT_ERRNO();
-//     if (port > UINT16_MAX) {
-//         fatal("%ul is not a valid port number", port);
-//     }
-
-//     return (uint16_t) port;
-// }
-
 void setValue(int argc, char *argv[]){
-    for( int i = 1 ; i < argc; i++){
+    for( int i = 1 ; i < argc; i+=2){
         if(!strcmp(argv[i],"-a")){
             host = argv[i +1];
         }
@@ -48,30 +36,9 @@ void setValue(int argc, char *argv[]){
         }
         else if(!strcmp(argv[i],"-n")){
             name = argv[i+1];
-         }
-     }
+        }
+    }
 }
-
-// struct sockaddr_in get_send_address(char *host, uint16_t port) {
-//     struct addrinfo hints;
-//     memset(&hints, 0, sizeof(struct addrinfo));
-//     hints.ai_family = AF_INET; // IPv4
-//     hints.ai_socktype = SOCK_DGRAM;
-//     hints.ai_protocol = IPPROTO_UDP;
-
-//     struct addrinfo *address_result;
-//     CHECK(getaddrinfo(host, NULL, &hints, &address_result));
-
-//     struct sockaddr_in send_address;
-//     send_address.sin_family = AF_INET; 
-//     send_address.sin_addr.s_addr =
-//             ((struct sockaddr_in *) (address_result->ai_addr))->sin_addr.s_addr; 
-//     send_address.sin_port = htons(port); 
-
-//     freeaddrinfo(address_result);
-
-//     return send_address;
-// }
 
 void send_audio(int socket_fd, const struct sockaddr_in *send_address, const char *message) {
     size_t audio_length = psize +  2 * sizeof(uint64_t);
@@ -96,7 +63,6 @@ int main(int argc, char *argv[]) {
         PRINT_ERRNO();
     }
     char audio_package[psize + 2*sizeof(uint64_t)];
-    int counter = 0;
     uint64_t *session_id = (uint64_t *) audio_package;
 
     uint64_t *converted_byte = session_id +1;
@@ -104,7 +70,6 @@ int main(int argc, char *argv[]) {
     *session_id = htobe64(start);
     int i = 0;
     while( fread(audio_package + 2 * sizeof(uint64_t), sizeof(char), psize, stdin) ==psize ){
-    //while(correct_input(audio_package, counter)){
         // if(i >2 ){
         // if(i %2 ==0){
         //     first_byte_num = (i+1)*psize;
@@ -113,9 +78,7 @@ int main(int argc, char *argv[]) {
         //     first_byte_num = (i-1)*psize;
         // }
         // }
-        // i++;
-        //fprintf(stderr, "%ld \n", first_byte_num);
-        // i++;
+        //  i++;
         // if( i %2 == 0) {
         //     first_byte_num += psize;
         //     continue;
